@@ -35,7 +35,9 @@ def main():
     running = True
     while running:
         dt = clock.tick(FPS) / 1000.0  # Delta time em segundos
-        fps_timer += dt        # Eventos
+        fps_timer += dt
+        
+        # Eventos
         for event in pygame.event.get():
             if event.type == QUIT:  # Usar constante centralizada
                 running = False
@@ -51,7 +53,9 @@ def main():
         gerenciador.update(dt)
 
         # Renderizar
-        gerenciador.render()        # Mostrar FPS simples
+        gerenciador.render()
+        
+        # Mostrar FPS simples
         if show_fps and fps_timer >= fps_display_interval:
             fps_atual = clock.get_fps()
             fps_color = (100, 255, 100) if fps_atual >= 45 else (255, 255, 0) if fps_atual >= 25 else (255, 100, 100)

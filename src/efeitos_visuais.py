@@ -24,7 +24,8 @@ class EfeitoVisual(pygame.sprite.Sprite):
         self.image = pygame.Surface((1, 1), SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         self.rect = self.image.get_rect()
-        self.rect.center = (int(self.pos_x), int(self.pos_y))
+        if self.rect is not None:
+            self.rect.center = (int(self.pos_x), int(self.pos_y))
 
     def update(self, dt):
         """Atualizar efeito"""
@@ -37,14 +38,8 @@ class EfeitoVisual(pygame.sprite.Sprite):
         progresso = self.tempo_vida / self.duracao_total
         self.alpha = int(255 * progresso)
 
-        self.atualizar_efeito(dt, progresso)
-
         # Atualizar posição do rect
         self.rect.center = (int(self.pos_x), int(self.pos_y))
-
-    def atualizar_efeito(self, dt, progresso):
-        """Método para ser sobrescrito pelas subclasses"""
-        raise NotImplementedError("Subclasses devem implementar o método atualizar_efeito")
 
 class EfeitoExplosao(EfeitoVisual):
     """Efeito de explosão circular"""
@@ -68,6 +63,8 @@ class EfeitoExplosao(EfeitoVisual):
             self.tamanho_atual = self.tamanho_max * (1 - progresso)
 
         # Redesenhar círculo
+        if self.image is None:
+            self.image = pygame.Surface((self.tamanho_max * 2, self.tamanho_max * 2), SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         if self.tamanho_atual > 0:
             cor_com_alpha = (*self.cor, self.alpha)
@@ -103,9 +100,16 @@ class EfeitoParticulas(EfeitoVisual):
 
     def atualizar_efeito(self, dt, progresso):
         """Atualizar partículas"""
-        self.image.fill((0, 0, 0, 0))
-        centro_x = self.image.get_width() // 2
-        centro_y = self.image.get_height() // 2
+        if self.image is None:
+            # Garante que self.image está inicializada
+            self.image = pygame.Surface((self.raio * 4, self.raio * 4), SRCALPHA)
+        if self.image is not None:
+            self.image.fill((0, 0, 0, 0))
+            centro_x = self.image.get_width() // 2
+            centro_y = self.image.get_height() // 2
+        else:
+            centro_x = 0
+            centro_y = 0
 
         for particula in self.particulas[:]:
             particula['x'] += particula['vx'] * dt
@@ -141,6 +145,8 @@ class EfeitoOndas(EfeitoVisual):
 
     def atualizar_efeito(self, dt, progresso):
         """Atualizar ondas"""
+        if self.image is None:
+            self.image = pygame.Surface((self.raio_max * 2, self.raio_max * 2), SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         centro = (self.image.get_width() // 2, self.image.get_height() // 2)
 
@@ -189,7 +195,8 @@ class EfeitoRaio(EfeitoVisual):
         end_pos = (self.offset_x + (self.x2 - self.x1), self.offset_y + (self.y2 - self.y1))
 
         cor_com_alpha = (*self.cor, self.alpha)
-        pygame.draw.line(self.image, cor_com_alpha, start_pos, end_pos, self.largura)
+        if self.image is not None:
+            pygame.draw.line(self.image, cor_com_alpha, start_pos, end_pos, self.largura)
 
         # Adicionar linhas de energia (efeito tremulante)
         if progresso > 0.3:

@@ -155,7 +155,8 @@ class Game:
         - inimigos: Sprites de inimigos
         - tiros: Projéteis de jogadores e inimigos
         - obstaculos: Elementos estáticos do mapa
-        - power_ups: Itens coletáveis        """
+        - power_ups: Itens coletáveis
+        """
         self.todos_sprites = pygame.sprite.Group()
         self.jogadores = pygame.sprite.Group()
         self.inimigos = pygame.sprite.Group()
@@ -442,7 +443,9 @@ class Game:
         self.pontos_proximo_nivel = self.nivel_atual * PONTOS_POR_NIVEL
 
         # Tocar som de level up
-        gerenciador_audio.tocar_som('level_up', canal='ui')      # Aumentar velocidade dos inimigos
+        gerenciador_audio.tocar_som('level_up', canal='ui')
+        
+        # Aumentar velocidade dos inimigos
         self.velocidade_inimigos_atual *= MULTIPLICADOR_VELOCIDADE_POR_NIVEL
 
         # Aumentar frequência de tiro dos inimigos
@@ -458,7 +461,9 @@ class Game:
         inimigos_atuais = len(self.inimigos)
         inimigos_necessarios = self.quantidade_inimigos_atual - inimigos_atuais
         for _ in range(inimigos_necessarios):
-            self.criar_novo_inimigo()        # Atualizar velocidade e tiro dos inimigos existentes
+            self.criar_novo_inimigo()
+        
+        # Atualizar velocidade e tiro dos inimigos existentes
         for inimigo in self.inimigos:
             inimigo.velocidade = self.velocidade_inimigos_atual
             # Atualizar cooldown de tiro baseado no novo multiplicador
@@ -725,6 +730,10 @@ class Game:
     def _processar_colisoes_jogador(self, _dt):
         """Processar colisões entre jogador e outros elementos"""
         # Parâmetro _dt mantido para consistência com outros métodos, mas não usado aqui
+        
+        # Verificar se jogador existe e não está morto
+        if not self.jogador or self.jogador_morto:
+            return
 
         # Colisões jogador-inimigo (jogador não pode passar através de inimigos)
         for inimigo in self.inimigos:
@@ -861,26 +870,32 @@ class Game:
 
     def _verificar_game_over(self):
         """Verificar se o jogador morreu e iniciar respawn"""
-        if self.jogador and self.jogador.vida <= 0 and not self.jogador_morto:
+        if self.jogador and hasattr(self.jogador, 'vida') and self.jogador.vida <= 0 and not self.jogador_morto:
             # Jogador morreu, iniciar processo de respawn
             self.jogador_morto = True
             self.tempo_respawn_restante = TEMPO_RESPAWN
-            self.posicao_morte = (self.jogador.rect.centerx, self.jogador.rect.centery)
+            
+            # Armazenar posição da morte se jogador tem rect
+            if hasattr(self.jogador, 'rect') and self.jogador.rect:
+                self.posicao_morte = (self.jogador.rect.centerx, self.jogador.rect.centery)
+                
+                # Efeito visual de morte
+                gerenciador_efeitos.grupo_efeitos.add(EfeitoExplosao(
+                    self.jogador.rect.centerx, self.jogador.rect.centery,
+                    (255, 255, 255), 60, 1.0
+                ))
 
-            # Efeito visual de morte
-            gerenciador_efeitos.grupo_efeitos.add(EfeitoExplosao(
-                self.jogador.rect.centerx, self.jogador.rect.centery,
-                (255, 255, 255), 60, 1.0
-            ))
+                # Partículas 3D de morte
+                sistema_particulas_3d.adicionar_explosao(
+                    self.jogador.rect.centerx, self.jogador.rect.centery,
+                    (255, 100, 100), 20
+                )
 
-            # Partículas 3D de morte
-            sistema_particulas_3d.adicionar_explosao(
-                self.jogador.rect.centerx, self.jogador.rect.centery,
-                (255, 100, 100), 20
-            )
-
-            # Fazer o jogador desaparecer temporariamente
-            self.jogador.rect.center = (-100, -100)  # Mover para fora da tela
+                # Fazer o jogador desaparecer temporariamente
+                self.jogador.rect.center = (-100, -100)  # Mover para fora da tela
+            else:
+                # Fallback se jogador não tem rect válido
+                self.posicao_morte = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
             # Som de morte
             gerenciador_audio.tocar_som('impacto_jogador', canal='impactos')  # Dropar gemas se tiver coletado
@@ -1308,7 +1323,7 @@ class Game:
         self.gerenciador_gemas.update(dt)
 
         # Verificar coleta de gemas pelo jogador
-        if self.jogador:
+        if self.jogador and hasattr(self.jogador, 'rect') and self.jogador.rect:
             gemas_coletadas = self.gerenciador_gemas.coletar_gemas(
                 self.jogador.rect.centerx,
                 self.jogador.rect.centery
@@ -1350,14 +1365,32 @@ class Game:
 
         # Tocar música de vitória
         gerenciador_audio.tocar_som('vitoria_jogo')        # Criar efeitos especiais de vitória em toda a tela
-        if self.jogador:
+        if self.jogador and hasattr(self.jogador, 'rect') and self.jogador.rect:
             gerenciador_efeitos.criar_efeito_vitoria(
                 self.jogador.rect.centerx,
                 self.jogador.rect.centery,
-                self.jogador.personagem.nome
+                getattr(self.jogador.personagem, 'nome', 'Jogador') if hasattr(self.jogador, 'personagem') else 'Jogador'
             )        # Registrar vitória na progressão
         try:
-            sistema_progressao.registrar_vitoria()
+            if hasattr(sistema_progressao, 'processar_fim_partida') and self.personagem_selecionado:
+                # Calcular tempo da partida em segundos
+                tempo_partida = (pygame.time.get_ticks() - self.tempo_inicio_partida) / 1000.0 if hasattr(self, 'tempo_inicio_partida') else 0
+                
+                # Estatísticas da partida
+                stats = {
+                    'dano_causado': getattr(self, 'dano_total_causado', 0),
+                    'dano_recebido': getattr(self, 'dano_total_recebido', 0),
+                    'inimigos_eliminados': getattr(self, 'inimigos_eliminados', 0),
+                    'gemas_coletadas': getattr(self, 'gemas_coletadas', 0),
+                    'tempo_sobrevivencia_total': tempo_partida
+                }
+                
+                sistema_progressao.processar_fim_partida(
+                    self.personagem_selecionado.nome,
+                    True,  # Vitória
+                    tempo_partida,
+                    **stats
+                )
         except (AttributeError, NameError):
             pass  # Sistema de progressão não disponível
 
@@ -1398,12 +1431,15 @@ class Game:
     def _respawnar_jogador(self):
         """Respawnar o jogador em uma posição segura"""
         posicao_respawn = self._encontrar_posicao_respawn_segura()
-        if posicao_respawn:
+        if posicao_respawn and self.jogador and hasattr(self.jogador, 'rect') and self.jogador.rect:
             # Restaurar jogador
             self.jogador.rect.center = posicao_respawn
-            self.jogador.pos_x = float(posicao_respawn[0])
-            self.jogador.pos_y = float(posicao_respawn[1])
-            self.jogador.vida = int(self.jogador.vida_maxima * VIDA_RESPAWN_PERCENTUAL)
+            if hasattr(self.jogador, 'pos_x'):
+                self.jogador.pos_x = float(posicao_respawn[0])
+            if hasattr(self.jogador, 'pos_y'):
+                self.jogador.pos_y = float(posicao_respawn[1])
+            if hasattr(self.jogador, 'vida') and hasattr(self.jogador, 'vida_maxima'):
+                self.jogador.vida = int(self.jogador.vida_maxima * VIDA_RESPAWN_PERCENTUAL)
 
             # Resetar estado
             self.jogador_morto = False
@@ -1511,7 +1547,7 @@ class Game:
         gerenciador_audio.tocar_som('powerup_vida', canal='ui')  # Som de vitória
 
         # Efeito visual de vitória
-        if self.jogador:
+        if self.jogador and hasattr(self.jogador, 'rect') and self.jogador.rect:
             gerenciador_efeitos.grupo_efeitos.add(EfeitoExplosao(
                 self.jogador.rect.centerx, self.jogador.rect.centery,
                 (255, 215, 0), 5, 2.0  # Explosão dourada
@@ -1529,15 +1565,19 @@ class Game:
 
     def verificar_conquistas(self):
         """Verifica e desbloqueia conquistas com base no estado atual do jogo."""
+        if not self.jogador:
+            return
+            
         contexto = {
-            'gemas_coletadas': self.jogador.gemas_coletadas,
-            'inimigos_derrotados': self.jogador.inimigos_derrotados,
-            'super_usada': self.jogador.super_usada
+            'gemas_coletadas': self.gemas_coletadas,  # Usar atributo do game ao invés do jogador
+            'inimigos_derrotados': self.inimigos_eliminados,  # Usar atributo do game
+            'super_usada': getattr(self.jogador, 'super_usada', 0) if hasattr(self.jogador, 'super_usada') else 0
         }
         desbloqueadas = self.sistema_conquistas.verificar_conquistas(contexto)
         for conquista in desbloqueadas:
             print(f"Conquista desbloqueada: {conquista.nome} - {conquista.descricao}")
-            self.ui.exibir_notificacao(f"Conquista desbloqueada: {conquista.nome}")
+            if hasattr(self.ui, 'exibir_notificacao'):
+                self.ui.exibir_notificacao(f"Conquista desbloqueada: {conquista.nome}")
 
     def _processar_progressao_fim_partida(self, vitoria):
         """Processa a progressão do Brawler ao fim da partida"""

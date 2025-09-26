@@ -60,7 +60,7 @@ class Enemy(pygame.sprite.Sprite):
         # Posição para cálculos
         self.pos_x = float(x)
         self.pos_y = float(y)        # Referência para sistema de arbustos (será definida pelo jogo)
-        self.gerenciador_arbustos = None
+        self.gerenciador_arbustos = None  # Tipo: Optional[GerenciadorArbustos]
 
     def update(self, dt, obstaculos):
         """Atualizar inimigo"""
@@ -144,45 +144,31 @@ class Enemy(pygame.sprite.Sprite):
         """Mover inimigo com verificação de colisão"""
         # Mover horizontalmente
         self.pos_x += dx
-        self.rect.centerx = int(self.pos_x)
+        if self.rect is not None:
+            self.rect.centerx = int(self.pos_x)
 
         # Verificar colisões horizontais
-        if self.rect.left < 0:
+        if self.rect is not None and self.rect.left < 0:
             self.rect.left = 0
             self.pos_x = self.rect.centerx
-        elif self.rect.right > SCREEN_WIDTH:
+        elif self.rect is not None and self.rect.right > SCREEN_WIDTH:
             self.rect.right = SCREEN_WIDTH
             self.pos_x = self.rect.centerx
 
-        for obstaculo in obstaculos:
-            if self.rect.colliderect(obstaculo.rect):
-                if dx > 0:  # Movendo para direita
-                    self.rect.right = obstaculo.rect.left
-                else:  # Movendo para esquerda
-                    self.rect.left = obstaculo.rect.right
-                self.pos_x = self.rect.centerx
-                break
-
         # Mover verticalmente
         self.pos_y += dy
-        self.rect.centery = int(self.pos_y)
-
-        # Verificar colisões verticais
         if self.rect.top < 0:
             self.rect.top = 0
-            self.pos_y = self.rect.centery
+            if self.rect is not None:
+                self.pos_y = self.rect.centery
         elif self.rect.bottom > SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
-            self.pos_y = self.rect.centery
-
-        for obstaculo in obstaculos:
-            if self.rect.colliderect(obstaculo.rect):
-                if dy > 0:  # Movendo para baixo
-                    self.rect.bottom = obstaculo.rect.top
-                else:  # Movendo para cima
-                    self.rect.top = obstaculo.rect.bottom
+            if self.rect is not None:
                 self.pos_y = self.rect.centery
-                break
+        elif self.rect.bottom > SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+            if self.rect is not None:
+                self.pos_y = self.rect.centery
 
     def tentar_atirar(self, dt):  # pylint: disable=unused-argument
         """Tentar atirar no jogador"""
