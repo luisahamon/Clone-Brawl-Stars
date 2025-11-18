@@ -13,7 +13,6 @@ from src.config import (
 )
 from src.efeitos_visuais import gerenciador_efeitos
 
-
 class Gema:
     """
     Representa uma gema coletável no jogo.

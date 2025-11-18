@@ -12,7 +12,6 @@ from src.config import SCREEN_WIDTH, SCREEN_HEIGHT
 from src.pygame_constants import SRCALPHA
 from src.ambiente_dinamico import EfeitoVentoArbustos
 
-
 class Arbusto(pygame.sprite.Sprite):
     """Classe individual para um arbusto"""
 
@@ -165,7 +164,6 @@ class Arbusto(pygame.sprite.Sprite):
                 screen.blit(image_scaled, (pos_x, pos_y))
             else:
                 screen.blit(self.image, (screen_x, screen_y))
-
 
 class GerenciadorArbustos:
     """Gerenciador principal do sistema de arbustos"""

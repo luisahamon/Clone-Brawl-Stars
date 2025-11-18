@@ -8,7 +8,6 @@ from typing import List, Optional
 from src.bullet import Bullet
 from src.quadtree import QuadTree
 
-
 class ProjectilePool:
     """
     Pool de objetos para projéteis.
@@ -128,7 +127,6 @@ class ProjectilePool:
             'inactive_bullets': len(self.inactive_bullets),
             'pool_usage': len(self.active_bullets) / len(self.pool) * 100
         }
-
 
 class CollisionOptimizer:
     """

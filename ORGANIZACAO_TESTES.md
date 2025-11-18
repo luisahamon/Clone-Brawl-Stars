@@ -17,7 +17,7 @@ c:\Users\LuisaHamon\jogo\
 
 **DEPOIS:**
 
-```
+```text
 
 c:\Users\LuisaHamon\jogo\testes\
 ├── README.md (documentação completa)
